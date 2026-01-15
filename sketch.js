@@ -1,5 +1,5 @@
 let socket;
-let canal = "canal-mouse-horizotal";
+let canal = "canal8";
 let sonido;
 let centroX = 200;
 let centroY = 200;
