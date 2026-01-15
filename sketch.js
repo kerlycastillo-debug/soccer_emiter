@@ -1,32 +1,57 @@
 let socket;
 let canal = "canal8";
 
-function setup() {
-  createCanvas(400, 400);
+let handPose;
+let video;
+let hands = [];
 
-  socket = io('http://206.189.168.40:3000', {
-    transports: ['websocket']
+function preload() {
+  handPose = ml5.handPose();
+}
+
+function setup() {
+  createCanvas(640, 480);
+
+  video = createCapture(VIDEO);
+  video.size(640, 480);
+  video.hide();
+
+  handPose.detectStart(video, gotHands);
+
+  socket = io("http://206.189.168.40:3000", {
+    transports: ["websocket"],
   });
 
-  socket.on('connect', () => {
+  socket.on("connect", () => {
     console.log("✅ Emisor conectado:", socket.id);
-    socket.emit('join-channel', canal);
+    socket.emit("join-channel", canal);
   });
 }
 
 function draw() {
-  background(220);
-  text("Mueve el mouse horizontalmente", 10, 20);
+  image(video, 0, 0, width, height);
 
-  let valor = floor(map(mouseX, 0, width, 0, 180));
+  if (hands.length >= 2) {
+    let p1 = hands[0].middle_finger_mcp;
+    let p2 = hands[1].middle_finger_mcp;
 
-  if (mouseX > 0 && mouseX < width) {
-    socket.emit('send-value', {
+    let energy = dist(p1.x, p1.y, p2.x, p2.y);
+    energy = constrain(energy, 50, 420);
+
+    let freq = map(energy, 50, 420, 120, 3000);
+    let vol  = map(energy, 50, 420, 0.05, 0.6);
+
+    // 👇 USAMOS EL EVENTO QUE TU SERVIDOR YA MANEJA
+    socket.emit("send-value", {
       channel: canal,
-      value: valor
+      value: {
+        freq: freq,
+        vol: vol
+      }
     });
   }
+}
 
-  // visual
-  ellipse(mouseX, height / 2, 20);
+function gotHands(results) {
+  hands = results;
 }
